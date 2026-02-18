@@ -1,0 +1,15 @@
+query MyQuery {
+  studenterGittFeideBrukere(
+    eierOrganisasjonskode: "215"
+    feideBrukere: "s300055@oslomet.no"
+  ) {
+    id
+    personProfil {
+      navn {
+        fornavn
+        etternavn
+      }
+      privatEpost
+    }
+  }
+}
