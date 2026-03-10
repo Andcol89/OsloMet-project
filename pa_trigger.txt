@@ -1,0 +1,13 @@
+https://defaultfec81f12628645508911f446fcdafa.1f.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/458dbe403099446fb09394403a3ae1af/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=REDACTED
+
+//Koblingen//
+curl -X POST \
+  "https://defaultfec81f12628645508911f446fcdafa.1f.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/458dbe403099446fb09394403a3ae1af/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=REDACTED" \
+  -H "Content-Type: application/json"
+
+  curl -X POST "https://defaultfec81f12628645508911f446fcdafa.1f.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/458dbe403099446fb09394403a3ae1af/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=REDACTED" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "feideBrukere": "s300055@oslomet.no"
+  }'
+

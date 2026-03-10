@@ -1,0 +1,16 @@
+query HentStudenter {
+  studenter(filter: {eierOrganisasjonskode: "215"}, first: 5) {
+    edges {
+      node {
+        studentnummer
+        semesterregistreringer {
+          edges {
+            node {
+              id
+            }
+          }
+        }
+      }
+    }
+  }
+}

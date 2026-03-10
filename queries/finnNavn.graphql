@@ -1,0 +1,11 @@
+query MyQuery {
+  personProfilerGittFeideBrukere(
+    eierOrganisasjonskode: "215"
+    feideBrukere: "chrhh@oslomet.no"
+  ) {
+    navn {
+      etternavn
+      fornavn
+    }
+  }
+}
