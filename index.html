@@ -3,580 +3,414 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Studentdata</title>
+  <title>Studentoppslag – OsloMet</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
+
     body {
       font-family: system-ui, -apple-system, sans-serif;
-      max-width: 860px;
-      margin: 40px auto;
-      padding: 0 16px;
       background: #f0f2f5;
       color: #1a1a1a;
+      margin: 0;
+      padding: 32px 16px;
     }
-    h1 { margin-bottom: 4px; }
-    p.subtitle { margin-top: 0; color: #555; font-size: 14px; }
 
-    /* --- søkerad --- */
-    .search-row {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 12px;
-      flex-wrap: wrap;
-    }
+    .page { max-width: 680px; margin: 0 auto; }
+
+    h1 { font-size: 22px; font-weight: 700; margin: 0 0 4px; }
+    .subtitle { font-size: 14px; color: #666; margin: 0 0 24px; }
+
+    /* Søkerad */
+    .search-row { display: flex; gap: 8px; margin-bottom: 8px; }
     .search-row input {
       flex: 1;
-      min-width: 120px;
       font-size: 15px;
-      padding: 10px 12px;
+      padding: 10px 14px;
       border: 1px solid #ccc;
-      border-radius: 6px;
+      border-radius: 8px;
+      outline: none;
     }
-    .search-row select {
-      font-size: 15px;
-      padding: 10px 12px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      background: #fff;
-      cursor: pointer;
-    }
-    .search-row button {
-      font-size: 15px;
-      padding: 10px 20px;
+    .search-row input:focus { border-color: #F5C800; }
+
+    button {
+      font-size: 14px;
+      font-weight: 600;
+      padding: 10px 18px;
       border: none;
-      border-radius: 6px;
-      background: #0062cc;
-      color: #fff;
+      border-radius: 8px;
       cursor: pointer;
       white-space: nowrap;
     }
-    .search-row button:hover { background: #004fa3; }
-    .search-row button:disabled { background: #6c9fd4; cursor: not-allowed; }
-    .search-row button.secondary {
+    .btn-primary { background: #F5C800; color: #1a1a1a; }
+    .btn-primary:hover:not(:disabled) { background: #ddb400; }
+    .btn-primary:disabled { background: #f5e080; cursor: not-allowed; }
+
+    /* Status */
+    #status { font-size: 14px; min-height: 20px; margin-bottom: 16px; }
+    #status.error   { color: #c0392b; font-weight: 600; }
+    #status.loading { color: #555; }
+    #status.ok      { color: #1a7a3e; font-weight: 600; }
+
+    /* Studentliste */
+    .student-list {
       background: #fff;
-      color: #0062cc;
-      border: 1px solid #0062cc;
-    }
-    .search-row button.secondary:hover { background: #e8f0fb; }
-
-    /* --- studentliste --- */
-    #student-list {
-      display: none;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-bottom: 16px;
-    }
-    #student-list button {
-      font-size: 13px;
-      padding: 4px 10px;
-      border: 1px solid #0062cc;
-      border-radius: 999px;
-      background: #fff;
-      color: #0062cc;
-      cursor: pointer;
-    }
-    #student-list button:hover { background: #e8f0fb; }
-
-    /* --- chips for aktive felt --- */
-    #field-chips {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-bottom: 16px;
-      min-height: 28px;
-    }
-    .chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      background: #dbeafe;
-      color: #1e40af;
-      border: 1px solid #93c5fd;
-      border-radius: 999px;
-      padding: 3px 10px 3px 12px;
-      font-size: 13px;
-      font-weight: 500;
-    }
-    .chip button {
-      background: none;
-      border: none;
-      cursor: pointer;
-      color: #1e40af;
-      font-size: 15px;
-      line-height: 1;
-      padding: 0;
-    }
-
-    /* --- status --- */
-    #status {
-      font-size: 14px;
-      min-height: 20px;
-      margin-bottom: 8px;
-      color: #444;
-    }
-    #status.error { color: #c0392b; font-weight: 600; }
-    #status.ok    { color: #1a7a3e; font-weight: 600; }
-
-    /* --- resultat-kort --- */
-    .result-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
-      gap: 16px;
-    }
-    .card {
-      background: #fff;
-      border-radius: 8px;
+      border-radius: 10px;
       box-shadow: 0 1px 4px rgba(0,0,0,.1);
       overflow: hidden;
-    }
-    .card-header {
-      background: #0062cc;
-      color: #fff;
-      padding: 8px 14px;
-      font-weight: 600;
-      font-size: 14px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .card-header .badge {
-      background: rgba(255,255,255,.25);
-      border-radius: 999px;
-      padding: 1px 8px;
-      font-size: 12px;
-    }
-    .card pre {
-      margin: 0;
-      padding: 12px 14px;
-      font-size: 12.5px;
-      overflow: auto;
-      max-height: 340px;
-      background: #fff;
+      margin-bottom: 20px;
     }
 
-    /* --- rå JSON fallback --- */
-    #raw-out {
-      display: none;
-      background: #f6f6f6;
-      border-radius: 8px;
-      padding: 14px;
-      font-size: 13px;
-      overflow: auto;
-      max-height: 500px;
-      margin-top: 8px;
+    .list-header {
+      padding: 12px 16px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: #888;
+      border-bottom: 1px solid #eee;
+      display: grid;
+      grid-template-columns: 110px 1fr 1fr;
+      gap: 12px;
     }
+
+    .list-row {
+      display: grid;
+      grid-template-columns: 110px 1fr 1fr;
+      gap: 12px;
+      padding: 11px 16px;
+      border-bottom: 1px solid #f3f3f3;
+      cursor: pointer;
+      transition: background .1s;
+      align-items: center;
+      font-size: 14px;
+    }
+    .list-row:last-child { border-bottom: none; }
+    .list-row:hover { background: #fffbea; }
+    .list-row.selected { background: #fff8cc; }
+    .list-row .nr { font-weight: 600; color: #b38f00; }
+    .list-row .muted { color: #888; font-size: 13px; }
+
+    /* Profilkort */
+    .profile-card {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.1);
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+
+    .profile-header {
+      background: #F5C800;
+      color: #1a1a1a;
+      padding: 18px 20px;
+      position: relative;
+    }
+    .profile-header .name { font-size: 20px; font-weight: 700; margin: 0 0 3px; }
+    .profile-header .meta { font-size: 13px; opacity: .7; margin: 0; }
+
+    .close-btn {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: rgba(0,0,0,.15);
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      font-weight: 300;
+      color: #1a1a1a;
+      line-height: 1;
+      transition: background .15s;
+    }
+    .close-btn:hover { background: rgba(0,0,0,.28); }
+
+    .section { padding: 14px 20px; border-top: 1px solid #eee; }
+    .section-title {
+      font-size: 11px; font-weight: 700;
+      letter-spacing: .08em; text-transform: uppercase;
+      color: #888; margin: 0 0 10px;
+    }
+    .field-grid {
+      display: grid;
+      grid-template-columns: 160px 1fr;
+      row-gap: 8px;
+      column-gap: 12px;
+    }
+    .field-label { font-size: 13px; color: #666; }
+    .field-value { font-size: 13px; font-weight: 500; color: #111; word-break: break-word; }
   </style>
 </head>
 <body>
-  <h1>Hent studentdata</h1>
-  <p class="subtitle">Søk på studentnummer og velg hvilke datatyper du vil hente fra Felles studentsystem (GraphQL).</p>
+<div class="page">
+  <img src="oslomet-logo.png" alt="OsloMet" style="height:160px;margin-bottom:28px;display:block;border:3px solid #1a1a1a;border-radius:16px;" />
+  <h1>Studentoppslag</h1>
+  <p class="subtitle">Last inn studentlisten og søk på navn eller studentnummer.</p>
 
   <div class="search-row">
-    <input id="studentnummer" placeholder="Studentnummer (kun tall, f.eks. 300055)" />
-    <select id="field-select">
-      <option value="">— Legg til datafelt —</option>
-    </select>
-    <button id="btn">Hent</button>
-    <button id="btn-list" class="secondary">Vis studentliste</button>
+    <input id="search-input" placeholder="Søk på navn eller studentnummer…" disabled />
+    <button id="btn-load" class="btn-primary">Last inn studenter</button>
   </div>
 
-  <div id="student-list"></div>
-  <div id="field-chips"></div>
   <p id="status"></p>
+  <div id="detail"></div>
+  <div id="list-container"></div>
+</div>
 
-  <div class="result-grid" id="result-grid"></div>
-  <pre id="raw-out"></pre>
+<script>
+  const FLOW_URL = "https://defaultfec81f12628645508911f446fcdafa.1f.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/458dbe403099446fb09394403a3ae1af/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=REDACTED";
 
-  <script>
-    // ─── Konfigurasjon ───────────────────────────────────────────────────────
-    const FLOW_URL = "https://defaultfec81f12628645508911f446fcdafa.1f.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/458dbe403099446fb09394403a3ae1af/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=REDACTED";
+  const statusEl   = document.getElementById("status");
+  const listEl     = document.getElementById("list-container");
+  const detailEl   = document.getElementById("detail");
+  const searchEl   = document.getElementById("search-input");
+  const btnLoad    = document.getElementById("btn-load");
 
-    // ─── Tilgjengelige GraphQL-felt ──────────────────────────────────────────
-    // Hvert objekt beskriver ett felt som kan hentes fra studenterGittFeideBrukere.
-    // «fragment» er GraphQL-feltet/-underfeltene som settes inn i spørringen.
-    const AVAILABLE_FIELDS = [
-      {
-        id: "basisinfo",
-        label: "Basisinfo (navn, fødselsdato)",
-        fragment: `
-          personProfil {
-            navn {
-              fornavn
-              etternavn
-            }
-            fodselsdato
-          }
-        `
-      },
-      {
-        id: "kontakt",
-        label: "Kontaktinformasjon",
-        fragment: `
-          personProfil {
-            institusjonsepost
-            arbeidsEpost
-          }
-        `
-      },
-      {
-        id: "studentforhold",
-        label: "Studentforhold",
-        fragment: `
-          studentforhold {
-            status
-            startdato
-            sluttdato
-            institusjonsnummer
-          }
-        `
-      },
-      {
-        id: "studieprogram",
-        label: "Studieprogram",
-        fragment: `
-          studentforhold {
-            studieprogram {
-              studieprogramkode
-              studieprogramnavn
-              studieniva
-            }
-          }
-        `
-      },
-      {
-        id: "semesterregistrering",
-        label: "Semesterregistrering",
-        fragment: `
-          studentforhold {
-            semesterregistrering {
-              semester {
-                arstall
-                terminkode
-              }
-              status
-            }
-          }
-        `
-      },
-      {
-        id: "undervisningsmelding",
-        label: "Undervisningsmeldinger",
-        fragment: `
-          studentforhold {
-            undervisningsmelding {
-              undervisningskode
-              status
-              semester {
-                arstall
-                terminkode
-              }
-            }
-          }
-        `
-      },
-      {
-        id: "vurderingsmelding",
-        label: "Vurderingsmeldinger (eksamen)",
-        fragment: `
-          studentforhold {
-            vurderingsmelding {
-              vurderingskombinasjonskode
-              status
-              semester {
-                arstall
-                terminkode
-              }
-            }
-          }
-        `
-      },
-      {
-        id: "resultat",
-        label: "Eksamensresultater",
-        fragment: `
-          studentforhold {
-            resultat {
-              emnekode
-              karakter
-              karakterskalaId
-              semester {
-                arstall
-                terminkode
-              }
-            }
-          }
-        `
-      },
-      {
-        id: "privatist",
-        label: "Privatistforhold",
-        fragment: `
-          privatistforhold {
-            status
-            startdato
-            sluttdato
-          }
-        `
-      },
-      {
-        id: "brukernavn",
-        label: "Feide-ID",
-        fragment: `
-          id
-        `
-      },
-    ];
+  let allStudents = [];
+  let selectedNr  = null;
 
-    // ─── State ───────────────────────────────────────────────────────────────
-    const activeFields = new Set();
-    const feideByStudentnr = new Map(); // studentnummer → feideBrukernavn
+  // ── GraphQL-spørringer ────────────────────────────────────────────────────
 
-    // ─── DOM-referanser ───────────────────────────────────────────────────────
-    const statusEl   = document.getElementById("status");
-    const gridEl     = document.getElementById("result-grid");
-    const rawOutEl   = document.getElementById("raw-out");
-    const inputEl    = document.getElementById("studentnummer");
-    const selectEl   = document.getElementById("field-select");
-    const chipsEl    = document.getElementById("field-chips");
-    const btnEl      = document.getElementById("btn");
-    const btnListEl  = document.getElementById("btn-list");
-    const listEl     = document.getElementById("student-list");
-
-    // ─── Bygg dropdown ───────────────────────────────────────────────────────
-    AVAILABLE_FIELDS.forEach(f => {
-      const opt = document.createElement("option");
-      opt.value = f.id;
-      opt.textContent = f.label;
-      selectEl.appendChild(opt);
-    });
-
-    // ─── Legg til felt via dropdown ───────────────────────────────────────────
-    selectEl.addEventListener("change", () => {
-      const id = selectEl.value;
-      if (!id) return;
-      selectEl.value = "";
-      if (activeFields.has(id)) return;
-      activeFields.add(id);
-      renderChips();
-    });
-
-    // ─── Render chips ─────────────────────────────────────────────────────────
-    function renderChips() {
-      chipsEl.innerHTML = "";
-      activeFields.forEach(id => {
-        const field = AVAILABLE_FIELDS.find(f => f.id === id);
-        const chip = document.createElement("span");
-        chip.className = "chip";
-        chip.innerHTML = `${field.label} <button title="Fjern" data-id="${id}">&times;</button>`;
-        chip.querySelector("button").addEventListener("click", () => {
-          activeFields.delete(id);
-          renderChips();
-        });
-        chipsEl.appendChild(chip);
-      });
-    }
-
-    // ─── Hent studentliste ───────────────────────────────────────────────────
-    btnListEl.addEventListener("click", async () => {
-      btnListEl.disabled = true;
-      listEl.style.display = "none";
-      listEl.innerHTML = "";
-      setStatus("Henter studentliste…", "");
-
-      const query = `{
-  studenter(filter: {eierOrganisasjonskode: "215"}, first: 50) {
+  function listQuery(cursor) {
+    const after = cursor ? `, after: "${cursor}"` : "";
+    return `{
+  studenter(filter: {eierOrganisasjonskode: "215"}, first: 50${after}) {
     edges {
       node {
         studentnummer
         personProfil {
           navn { fornavn etternavn }
-          institusjonsepost
+          institusjonsEpost
+          privatEpost
+          feideBruker
+          fodselsdato
+        }
+        semesterregistreringer {
+          edges { node { id } }
         }
       }
+    }
+    pageInfo { hasNextPage endCursor }
+  }
+}`;
+  }
+
+  function detailQuery(feide) {
+    return `{
+  studenterGittFeideBrukere(
+    eierOrganisasjonskode: "215"
+    feideBrukere: "${feide}"
+  ) {
+    studentnummer
+    personProfil {
+      navn { fornavn etternavn }
+      institusjonsEpost
+      privatEpost
+      feideBruker
+      fodselsdato
+    }
+    semesterregistreringer {
+      edges { node { id } }
     }
   }
 }`;
-
-      try {
-        const res = await fetch(FLOW_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query })
-        });
-
-        const text = await res.text();
-        let data;
-        try { data = JSON.parse(text); } catch { data = { raw: text }; }
-
-        if (!res.ok || data.errors) {
-          setStatus(`Feil ved henting av liste: ${data?.errors?.[0]?.message ?? res.status}`, "error");
-          return;
-        }
-
-        const edges = (data?.data?.studenter?.edges ?? []).filter(e => e?.node?.studentnummer);
-        if (!edges.length) {
-          setStatus("Ingen studenter funnet.", "error");
-          return;
-        }
-
-        // Store full node data keyed by studentnummer for use in search
-        edges.forEach(({ node }) => {
-          feideByStudentnr.set(node.studentnummer, node);
-        });
-
-        setStatus(`${edges.length} studenter funnet — klikk for å søke:`, "ok");
-        console.log("Første node:", edges[0]?.node);
-        edges.forEach(({ node }) => {
-          const btn = document.createElement("button");
-          btn.textContent = node.studentnummer;
-          btn.addEventListener("click", () => {
-            inputEl.value = node.studentnummer;
-            listEl.style.display = "none";
-          });
-          listEl.appendChild(btn);
-        });
-        listEl.style.display = "flex";
-
-      } catch (err) {
-        setStatus("Nettverksfeil: " + err.message, "error");
-      } finally {
-        btnListEl.disabled = false;
-      }
-    });
-
-    // ─── Bygg GraphQL-spørring dynamisk ──────────────────────────────────────
-    function buildQuery(nr) {
-      const selectedFragments = activeFields.size > 0
-        ? [...activeFields].map(id => AVAILABLE_FIELDS.find(f => f.id === id).fragment)
-        : [`personProfil { navn { fornavn etternavn } institusjonsepost }`];
-
-      const fragmentStr = selectedFragments.join('\n      ');
-
-      return `{
-  studenter(filter: {eierOrganisasjonskode: "215"}, first: 50) {
-    edges { node {
-      studentnummer
-      ${fragmentStr}
-    } }
   }
-}`;
-    }
 
-    // ─── Hent-knapp ──────────────────────────────────────────────────────────
-    btnEl.addEventListener("click", async () => {
-      const nr = inputEl.value.trim();
-      if (!nr) { setStatus("Skriv inn et studentnummer.", "error"); return; }
+  // ── API-kall ──────────────────────────────────────────────────────────────
 
-      const query = buildQuery(nr);
+  async function callFlow(query) {
+    const res = await fetch(FLOW_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query })
+    });
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); } catch { data = { raw: text }; }
+    if (!res.ok) throw new Error(data?.error?.message ?? `HTTP ${res.status}`);
+    if (data.errors?.length) throw new Error(data.errors[0].message);
+    return data;
+  }
 
-      setStatus("Henter…", "");
-      gridEl.innerHTML = "";
-      rawOutEl.style.display = "none";
-      btnEl.disabled = true;
+  // ── Last inn studentliste ─────────────────────────────────────────────────
 
-      try {
-        const res = await fetch(FLOW_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query })
+  btnLoad.addEventListener("click", async () => {
+    btnLoad.disabled = true;
+    searchEl.disabled = true;
+    allStudents = [];
+    listEl.innerHTML = "";
+    detailEl.innerHTML = "";
+    setStatus("Henter studenter…", "loading");
+
+    try {
+      let cursor = null;
+      let total  = 0;
+
+      // Hent inntil 300 studenter (3 sider)
+      for (let page = 0; page < 1; page++) {
+        const data = await callFlow(listQuery(cursor));
+        const edges    = data?.data?.studenter?.edges ?? [];
+        const pageInfo = data?.data?.studenter?.pageInfo ?? {};
+
+        edges.forEach(({ node }) => {
+          if (node?.studentnummer) allStudents.push(node);
         });
 
-        const text = await res.text();
-        let data;
-        try { data = JSON.parse(text); } catch { data = { raw: text }; }
+        total = allStudents.length;
+        setStatus(`Lastet ${total} studenter…`, "loading");
 
-        if (!res.ok) {
-          setStatus(`Feil (${res.status})`, "error");
-          showRaw(data);
-          return;
-        }
-
-        // GraphQL-feil i svaret
-        if (data.errors && data.errors.length) {
-          setStatus(`GraphQL-feil: ${data.errors[0].message}`, "error");
-          showRaw(data);
-          return;
-        }
-
-        setStatus("Hentet!", "ok");
-        renderCards(data);
-
-      } catch (err) {
-        setStatus("Nettverksfeil: " + err.message, "error");
-      } finally {
-        btnEl.disabled = false;
+        if (!pageInfo.hasNextPage) break;
+        cursor = pageInfo.endCursor;
       }
-    });
 
-    // ─── Hjelpefunksjoner ─────────────────────────────────────────────────────
-    function setStatus(msg, cls) {
-      statusEl.textContent = msg;
-      statusEl.className = cls;
-    }
-
-    function showRaw(data) {
-      rawOutEl.style.display = "block";
-      rawOutEl.textContent = JSON.stringify(data, null, 2);
-    }
-
-    function renderCards(data) {
-      const nr = inputEl.value.trim();
-
-      // Find the matching student from API response
-      const allNodes = (data?.data?.studenter?.edges ?? []).map(e => e?.node).filter(Boolean);
-      let student = allNodes.find(s => s.studentnummer === nr);
-
-      // Fall back to cached data from the list
-      if (!student) student = feideByStudentnr.get(nr);
-
-      if (!student) {
-        setStatus("Ingen student funnet med dette nummeret. Prøv å laste studentlisten først.", "error");
+      if (!allStudents.length) {
+        setStatus("Ingen studenter funnet.", "error");
         return;
       }
 
-      // Summary card with name and email
-      const epost = student.personProfil?.institusjonsepost ?? "—";
-      const navn = student.personProfil?.navn;
+      setStatus(`${allStudents.length} studenter lastet — søk i listen.`, "ok");
+      searchEl.disabled = false;
+      searchEl.focus();
+      renderList(allStudents);
 
-      const summaryCard = document.createElement("div");
-      summaryCard.className = "card";
-      summaryCard.innerHTML = `
-        <div class="card-header">Studentnummer: ${nr}</div>
-        <pre>${JSON.stringify({
-          studentnummer: nr,
-          institusjonsepost: epost,
-          fornavn: navn?.fornavn ?? "—",
-          etternavn: navn?.etternavn ?? "—"
-        }, null, 2)}</pre>
-      `;
-      gridEl.appendChild(summaryCard);
+    } catch (err) {
+      setStatus("Feil: " + err.message, "error");
+      btnLoad.disabled = false;
+    }
+  });
 
-      // One card per active field (skip basisinfo/kontakt since they're in the summary)
-      [...activeFields].forEach(id => {
-        const field = AVAILABLE_FIELDS.find(f => f.id === id);
-        const topKey = getTopKey(field.fragment);
-        const value = topKey ? student[topKey] : student;
+  // ── Søkefilter ────────────────────────────────────────────────────────────
 
-        const card = document.createElement("div");
-        card.className = "card";
+  searchEl.addEventListener("input", () => {
+    const q = searchEl.value.trim().toLowerCase();
+    if (!q) { renderList(allStudents); return; }
 
-        const count = Array.isArray(value) ? value.length : null;
-        card.innerHTML = `
-          <div class="card-header">
-            ${field.label}
-            ${count !== null ? `<span class="badge">${count} rad(er)</span>` : ""}
-          </div>
-          <pre>${JSON.stringify(value ?? null, null, 2)}</pre>
-        `;
-        gridEl.appendChild(card);
+    const filtered = allStudents.filter(s => {
+      const navn = s.personProfil?.navn;
+      const fullt = [navn?.fornavn, navn?.etternavn].join(" ").toLowerCase();
+      return s.studentnummer?.includes(q) || fullt.includes(q);
+    });
+    renderList(filtered);
+  });
+
+  // ── Vis liste ─────────────────────────────────────────────────────────────
+
+  function renderList(students) {
+    if (!students.length) {
+      listEl.innerHTML = `<p style="color:#888;font-size:14px">Ingen treff.</p>`;
+      return;
+    }
+
+    const rows = students.map(s => {
+      const navn  = s.personProfil?.navn;
+      const fullt = [navn?.fornavn, navn?.etternavn].filter(Boolean).join(" ") || "—";
+      const epost = s.personProfil?.institusjonsEpost ?? s.personProfil?.feideBruker ?? "—";
+      const sel   = s.studentnummer === selectedNr ? " selected" : "";
+      return `<div class="list-row${sel}" data-nr="${s.studentnummer}" data-feide="${s.personProfil?.feideBruker ?? ""}">
+        <span class="nr">${s.studentnummer}</span>
+        <span>${fullt}</span>
+        <span class="muted">${epost}</span>
+      </div>`;
+    }).join("");
+
+    listEl.innerHTML = `
+      <div class="student-list">
+        <div class="list-header">
+          <span>Studentnr.</span><span>Navn</span><span>E-post</span>
+        </div>
+        ${rows}
+      </div>`;
+
+    listEl.querySelectorAll(".list-row").forEach(row => {
+      row.addEventListener("click", () => {
+        const nr = row.dataset.nr;
+        selectedNr = nr;
+
+        listEl.querySelectorAll(".list-row").forEach(r => r.classList.remove("selected"));
+        row.classList.add("selected");
+
+        // Vis kortet umiddelbart fra lokal data
+        const student = allStudents.find(s => s.studentnummer === nr);
+        renderDetailFromList(student);
+
+        // Scroll til toppen
+        window.scrollTo({ top: 0, behavior: "smooth" });
       });
-    }
+    });
+  }
 
-    // Finn første nøkkelord i fragmentet (f.eks. "person", "studentforhold", …)
-    function getTopKey(fragment) {
-      const match = fragment.trim().match(/^(\w+)/);
-      return match ? match[1] : null;
+  // ── Hent og vis detaljkort ────────────────────────────────────────────────
+
+  async function showDetail(feide, nr) {
+    detailEl.innerHTML = "";
+    setStatus("Henter detaljer…", "loading");
+    try {
+      const data = await callFlow(detailQuery(feide));
+      const studenter = data?.data?.studenterGittFeideBrukere ?? [];
+      if (!studenter.length || !studenter[0]) {
+        renderDetailFromList(allStudents.find(s => s.studentnummer === nr));
+        return;
+      }
+      setStatus("", "");
+      detailEl.innerHTML = renderCard(studenter[0]);
+    } catch (err) {
+      setStatus("Feil ved henting av detaljer: " + err.message, "error");
     }
-  </script>
+  }
+
+  function renderDetailFromList(s) {
+    setStatus("", "");
+    detailEl.innerHTML = renderCard(s);
+  }
+
+  // ── Profilkort ────────────────────────────────────────────────────────────
+
+  function renderCard(s) {
+    const navn    = s.personProfil?.navn;
+    const fullt   = [navn?.fornavn, navn?.etternavn].filter(Boolean).join(" ") || "—";
+    const iepost  = s.personProfil?.institusjonsEpost ?? "—";
+    const pepost  = s.personProfil?.privatEpost ?? "—";
+    const feide   = s.personProfil?.feideBruker ?? "—";
+    const fødsel  = s.personProfil?.fodselsdato ?? "—";
+    const nSem    = s.semesterregistreringer?.edges?.length ?? "—";
+
+    return `
+      <div class="profile-card">
+        <div class="profile-header">
+          <p class="name">${fullt}</p>
+          <p class="meta">Studentnummer: ${s.studentnummer ?? "—"} &nbsp;·&nbsp; ${iepost}</p>
+          <button class="close-btn" onclick="document.getElementById('detail').innerHTML=''" title="Lukk">&times;</button>
+        </div>
+        <div class="section">
+          <p class="section-title">Personinfo</p>
+          <div class="field-grid">
+            ${row("Fornavn", navn?.fornavn)}
+            ${row("Etternavn", navn?.etternavn)}
+            ${row("Institusjonsepost", iepost)}
+            ${row("Privat e-post", pepost)}
+            ${row("Feide-bruker", feide)}
+            ${row("Fødselsdato", fødsel)}
+            ${row("Semesterregistreringer", nSem)}
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function row(label, value) {
+    return `<div class="field-label">${label}</div><div class="field-value">${value ?? "—"}</div>`;
+  }
+
+  // ── Hjelpefunksjoner ──────────────────────────────────────────────────────
+
+  function setStatus(msg, cls) {
+    statusEl.textContent = msg;
+    statusEl.className   = cls;
+  }
+</script>
 </body>
 </html>
