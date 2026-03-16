@@ -30,82 +30,86 @@ Det finnes også en frittstående HTML-versjon (`index.html`) som kaller flyten 
 
 ---
 
-## Power Automate-flyt (eksisterende – HTTP-trigger)
+## DEL 1 — Power Automate: Ny flyt med Power Apps-trigger
 
-**Flyt-ID:** `458dbe403099446fb09394403a3ae1af`
-**Miljø:** `Default-fec81f12-6286-4550-8911-f446fcdafa1f`
+### 1.1 Opprett ny flyt
 
-Flyten tar imot `{ query: "..." }` som JSON-body og sender GraphQL-spørringen videre til Felles studentsystem.
-
-### GraphQL API
-- **URL:** `https://api.fellesstudentsystem.no/graphql/`
-- **Auth:** Basic Auth (brukernavn/passord i `.env`)
-- **Org-kode:** `215` (OsloMet)
-
-### Eksempel på spørring
-```graphql
-{
-  studenterGittFeideBrukere(
-    eierOrganisasjonskode: "215"
-    feideBrukere: "s300055@oslomet.no"
-  ) {
-    personProfil {
-      navn { fornavn etternavn }
-      institusjonsepost
-      fodselsdato
-    }
-    studentforhold {
-      status
-      startdato
-      studieprogram {
-        studieprogramkode
-        studieprogramnavn
-        studieniva
-      }
-      semesterregistrering {
-        semester { arstall terminkode }
-        status
-      }
-    }
-  }
-}
-```
-
-> Feide-format: `s{studentnummer}@oslomet.no`
+1. Gå til [make.powerautomate.com](https://make.powerautomate.com)
+2. Klikk **"Opprett"** i venstre meny
+3. Velg **"Automatisert skyflyt"**
+4. Gi flyten et navn, f.eks. `StudentOppslag_PowerApps`
+5. Klikk **"Hopp over"** (du setter trigger manuelt i neste steg)
 
 ---
 
-## Power Apps-oppsett (ny flyt + canvas app)
+### 1.2 Legg til trigger: Power Apps (V2)
 
-### Steg 1 – Ny flyt med Power Apps-trigger
+1. Klikk **"Legg til en trigger"**
+2. Søk etter `Power Apps`
+3. Velg **"Power Apps (V2)"** — *ikke den vanlige "Power Apps", men V2*
+4. Klikk på triggeren for å åpne den
+5. Klikk **"+ Legg til en inndata"**
+6. Velg **"Tekst"**
+7. Skriv inn `studentnummer` som navn
+8. Klikk **"Ferdig"**
 
-Opprett en ny flyt i Power Automate med følgende struktur:
+---
 
-#### Trigger: Power Apps (V2)
-- Input: `studentnummer` (Text)
+### 1.3 Action 1: Compose — Bygg feide-ID
 
-#### Action 1: Compose – Bygg feide-ID
+1. Klikk **"+ Nytt steg"**
+2. Søk etter `Compose` (eller `Skriv`)
+3. Velg **"Compose"** under Data-operasjoner
+4. Gi den et navn ved å klikke på tittelen og skriv `FeideID`
+5. I **"Inputs"**-feltet — klikk i feltet og velg **"Uttrykk"** (Expression-fanen)
+6. Lim inn dette uttrykket:
+   ```
+   concat("s", triggerBody()['studentnummer'], "@oslomet.no")
+   ```
+7. Klikk **"OK"**
+
+---
+
+### 1.4 Action 2: HTTP — Kall GraphQL API
+
+1. Klikk **"+ Nytt steg"**
+2. Søk etter `HTTP`
+3. Velg **"HTTP"** (ikke HTTP + Swagger)
+4. Fyll inn feltene:
+
+**Method:** POST
+
+**URI:**
 ```
-concat("s", triggerBody()['studentnummer'], "@oslomet.no")
+https://api.fellesstudentsystem.no/graphql/
 ```
 
-#### Action 2: HTTP – Kall GraphQL API
-| Felt | Verdi |
+**Headers** — klikk "+ Legg til header" to ganger:
+
+| Nøkkel | Verdi |
 |---|---|
-| Method | POST |
-| URI | `https://api.fellesstudentsystem.no/graphql/` |
-| Content-Type | `application/json` |
-| Authorization | `Basic b3Nsb21ldF9kaXVfc2VrOmk1ZWdFSE40MUU3NDZNZnc=` |
+| `Content-Type` | `application/json` |
+| `Authorization` | `Basic b3Nsb21ldF9kaXVfc2VrOmk1ZWdFSE40MUU3NDZNZnc=` |
 
-Body:
-```json
+**Body** — lim inn følgende (FeideID settes inn automatisk):
+```
 {
-  "query": "{ studenterGittFeideBrukere(eierOrganisasjonskode: \"215\" feideBrukere: \"@{outputs('FeideID')}\") { personProfil { navn { fornavn etternavn } institusjonsepost fodselsdato } studentforhold { status startdato studieprogram { studieprogramkode studieprogramnavn studieniva } semesterregistrering { semester { arstall terminkode } status } } } }"
+  "query": "{ studenterGittFeideBrukere(eierOrganisasjonskode: \"215\" feideBrukere: \"@{outputs('FeideID')}\") { personProfil { navn { fornavn etternavn } institusjonsEpost fodselsdato privatEpost feideBruker } } }"
 }
 ```
 
-#### Action 3: Parse JSON
-Parse body fra HTTP-steget med dette skjemaet:
+> **NB:** `@{outputs('FeideID')}` henter verdien fra Compose-steget automatisk.
+
+---
+
+### 1.5 Action 3: Parse JSON
+
+1. Klikk **"+ Nytt steg"**
+2. Søk etter `Parse JSON`
+3. Velg **"Parse JSON"** under Data-operasjoner
+4. I **"Content"**-feltet: klikk i feltet → velg **"Dynamisk innhold"** → velg **"Body"** fra HTTP-steget
+5. I **"Schema"**-feltet — lim inn:
+
 ```json
 {
   "type": "object",
@@ -128,26 +132,10 @@ Parse body fra HTTP-steget med dette skjemaet:
                       "etternavn": { "type": "string" }
                     }
                   },
-                  "institusjonsepost": { "type": "string" },
+                  "institusjonsEpost": { "type": "string" },
+                  "privatEpost": { "type": "string" },
+                  "feideBruker": { "type": "string" },
                   "fodselsdato": { "type": "string" }
-                }
-              },
-              "studentforhold": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "status": { "type": "string" },
-                    "startdato": { "type": "string" },
-                    "studieprogram": {
-                      "type": "object",
-                      "properties": {
-                        "studieprogramkode": { "type": "string" },
-                        "studieprogramnavn": { "type": "string" },
-                        "studieniva": { "type": "string" }
-                      }
-                    }
-                  }
                 }
               }
             }
@@ -159,55 +147,134 @@ Parse body fra HTTP-steget med dette skjemaet:
 }
 ```
 
-#### Action 4: Respond to Power Apps (V2)
-| Navn | Expression |
+---
+
+### 1.6 Action 4: Respond to Power Apps (V2)
+
+1. Klikk **"+ Nytt steg"**
+2. Søk etter `Respond to a PowerApp`
+3. Velg **"Respond to a PowerApp or flow"**
+4. Klikk **"+ Legg til en utdata"** for hvert felt under:
+
+For hvert felt — velg type **"Tekst"**, skriv inn navnet, klikk i verdi-feltet → velg **"Uttrykk"** og lim inn expression:
+
+| Navn | Expression (lim inn i Uttrykk-fanen) |
 |---|---|
 | `fornavn` | `first(body('Parse_JSON')?['data']?['studenterGittFeideBrukere'])?['personProfil']?['navn']?['fornavn']` |
 | `etternavn` | `first(body('Parse_JSON')?['data']?['studenterGittFeideBrukere'])?['personProfil']?['navn']?['etternavn']` |
-| `epost` | `first(body('Parse_JSON')?['data']?['studenterGittFeideBrukere'])?['personProfil']?['institusjonsepost']` |
+| `epost` | `first(body('Parse_JSON')?['data']?['studenterGittFeideBrukere'])?['personProfil']?['institusjonsEpost']` |
+| `privatepost` | `first(body('Parse_JSON')?['data']?['studenterGittFeideBrukere'])?['personProfil']?['privatEpost']` |
+| `feidebruker` | `first(body('Parse_JSON')?['data']?['studenterGittFeideBrukere'])?['personProfil']?['feideBruker']` |
 | `fodselsdato` | `first(body('Parse_JSON')?['data']?['studenterGittFeideBrukere'])?['personProfil']?['fodselsdato']` |
-| `programnavn` | `first(first(body('Parse_JSON')?['data']?['studenterGittFeideBrukere'])?['studentforhold'])?['studieprogram']?['studieprogramnavn']` |
-| `programkode` | `first(first(body('Parse_JSON')?['data']?['studenterGittFeideBrukere'])?['studentforhold'])?['studieprogram']?['studieprogramkode']` |
-| `studentStatus` | `first(first(body('Parse_JSON')?['data']?['studenterGittFeideBrukere'])?['studentforhold'])?['status']` |
-| `startdato` | `first(first(body('Parse_JSON')?['data']?['studenterGittFeideBrukere'])?['studentforhold'])?['startdato']` |
+
+5. Klikk **"Lagre"** øverst til høyre
+6. Test flyten: klikk **"Test"** → **"Manuelt"** → skriv inn `300055` som studentnummer → klikk **"Kjør flyt"**
 
 ---
 
-### Steg 2 – Canvas App i Power Apps
+## DEL 2 — Power Apps: Canvas App
 
-1. **Power Apps → Opprett → Tom canvas-app**
-2. Koble til flyten: **Power Automate-panel → Legg til flyt**
+### 2.1 Opprett ny app
 
-#### Elementer på skjermen
+1. Gå til [make.powerapps.com](https://make.powerapps.com)
+2. Klikk **"Opprett"** i venstre meny
+3. Velg **"Tom app"**
+4. Velg **"Tom canvas-app"**
+5. Gi appen et navn, f.eks. `Studentoppslag`
+6. Velg format: **"Nettbrett"** (passer best i SharePoint)
+7. Klikk **"Opprett"**
 
-**Text input** – navn: `InputStudentnr`
-- Placeholder: `"Studentnummer, f.eks. 300055"`
+---
 
-**Button** – tekst: `"Hent"`
-- OnSelect:
-```
-Set(varStudent, DittFlytNavn.Run(InputStudentnr.Text))
-```
+### 2.2 Koble til Power Automate-flyten
 
-**Labels** for visning:
+1. Klikk på **strømbol-ikonet** i venstre panel (Power Automate)
+2. Klikk **"Legg til flyt"**
+3. Finn flyten `StudentOppslag_PowerApps` du lagde
+4. Klikk på den — den legges nå til i appen
 
-| Label | Text-egenskap |
+---
+
+### 2.3 Legg til søkefelt (Text input)
+
+1. Klikk **"+ Sett inn"** i toppmenyen
+2. Velg **"Tekstinndata"** (Text input)
+3. Klikk på elementet → gi det navnet `InputStudentnr` i navnefeltet øverst til venstre
+4. I høyre panel under **"Placeholder"**, skriv:
+   ```
+   "Studentnummer, f.eks. 300055"
+   ```
+5. Plasser det øverst på skjermen
+
+---
+
+### 2.4 Legg til Hent-knapp
+
+1. Klikk **"+ Sett inn"** → **"Knapp"**
+2. Endre teksten til `"Hent"`
+3. Klikk på knappen → velg **"OnSelect"** i formellinjen øverst
+4. Lim inn:
+   ```
+   Set(varStudent, StudentOppslag_PowerApps.Run(InputStudentnr.Text))
+   ```
+   > Bytt `StudentOppslag_PowerApps` med det eksakte navnet på flyten din slik den vises i Power Apps
+
+---
+
+### 2.5 Legg til visning av studentdata (Labels)
+
+For hvert felt — klikk **"+ Sett inn"** → **"Etikett"** (Label):
+
+Klikk på etiketten → velg **"Text"** i formellinjen og lim inn:
+
+| Hva | Text-formel |
 |---|---|
 | Navn | `varStudent.fornavn & " " & varStudent.etternavn` |
-| E-post | `varStudent.epost` |
+| Institusjonsepost | `varStudent.epost` |
+| Privat e-post | `varStudent.privatepost` |
+| Feide-bruker | `varStudent.feidebruker` |
 | Fødselsdato | `varStudent.fodselsdato` |
-| Studieprogram | `varStudent.programnavn & " (" & varStudent.programkode & ")"` |
-| Status | `varStudent.studentStatus` |
-| Startdato | `varStudent.startdato` |
+
+> **Tips:** Legg til en overskriftsetikett over hvert felt med fast tekst, f.eks. `"Navn:"`, `"E-post:"` osv.
 
 ---
 
-### Steg 3 – Legg inn i SharePoint
+### 2.6 Test appen
 
-1. Gå til SharePoint-siden → **Rediger**
-2. Legg til webdelen **Power Apps**
-3. Velg canvas-appen
-4. **Publiser siden**
+1. Klikk **"Spill av"** (trekant-knappen) øverst til høyre
+2. Skriv inn `300055` i søkefeltet
+3. Klikk **"Hent"**
+4. Verifiser at studentdata vises
+
+---
+
+### 2.7 Publiser appen
+
+1. Klikk **"Fil"** → **"Lagre"**
+2. Klikk **"Publiser"** → **"Publiser denne versjonen"**
+
+---
+
+## DEL 3 — SharePoint: Legg inn appen
+
+### 3.1 Åpne SharePoint-siden
+
+1. Gå til SharePoint-siden der du vil legge inn studentoppslagsappen
+2. Klikk **"Rediger"** øverst til høyre
+
+### 3.2 Legg til Power Apps-webdel
+
+1. Klikk på **"+"** der du vil legge inn appen
+2. Søk etter `Power Apps`
+3. Velg **"Power Apps"**-webdelen
+4. Klikk **"Legg til en app"**
+5. Finn og velg `Studentoppslag`-appen din
+6. Juster størrelsen ved å dra i kantene
+
+### 3.3 Publiser siden
+
+1. Klikk **"Publiser"** øverst til høyre
+2. Appen er nå tilgjengelig for alle med tilgang til SharePoint-siden
 
 ---
 
@@ -215,6 +282,38 @@ Set(varStudent, DittFlytNavn.Run(InputStudentnr.Text))
 
 | Problem | Årsak | Løsning |
 |---|---|---|
-| 502 NoResponse | GraphQL API svarer ikke innen timeout | Sjekk run history i PA, øk timeout i HTTP-action (Advanced parameters) |
-| Ingen student funnet | Feil studentnummer eller feide-format | Sjekk at feide-ID er `s{nr}@oslomet.no` |
-| CORS-feil | Manglende headers i Response-action | Sørg for at CORS-headers er satt i flyten |
+| 502 NoResponse | GraphQL API svarer ikke fra Microsofts sky-IP-er | OsloMet IT må hviteliste Power Automates IP-adresser |
+| Ingen student funnet | Feil studentnummer eller feide-format | Feide-ID er `s{nr}@oslomet.no` — fungerer kun for testbrukere |
+| Tom respons fra flyt | Parse JSON finner ikke feltet | Sjekk run history i PA — se hva HTTP-steget faktisk returnerte |
+| CORS-feil i HTML | Manglende headers i Response-action | Sørg for at CORS-headers er satt i den eksisterende flyten |
+| "Name isn't valid" i Power Apps | Flytnavn med mellomrom | Bruk understrek i flytnavn, f.eks. `StudentOppslag_PowerApps` |
+
+---
+
+## GraphQL API — Gyldige felt
+
+Bekreftet fungerende felt på `studenterGittFeideBrukere`:
+
+```graphql
+{
+  studenterGittFeideBrukere(
+    eierOrganisasjonskode: "215"
+    feideBrukere: "s300055@oslomet.no"
+  ) {
+    id
+    studentnummer
+    personProfil {
+      navn { fornavn etternavn }
+      institusjonsEpost
+      privatEpost
+      feideBruker
+      fodselsdato
+    }
+    semesterregistreringer {
+      edges { node { id } }
+    }
+  }
+}
+```
+
+> **NB:** `studentforhold`, `studieprogram`, `institusjonsepost` (liten e) finnes **ikke** i dette APIet.
