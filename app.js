@@ -1,14 +1,37 @@
-// MERK: FLOW_URL inneholder en signaturnøkkel og bør behandles som et passord.
-// I produksjon bør denne ligge server-side og ikke eksponeres i frontend-kode.
-const FLOW_URL = "https://defaultfec81f12628645508911f446fcdafa.1f.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/458dbe403099446fb09394403a3ae1af/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=REDACTED";
+// FLOW_URL lastes fra config.js som er gitignorert og aldri committet.
+// Se config.example.js for oppsett.
+const FLOW_URL = window.APP_CONFIG?.FLOW_URL;
+if (!FLOW_URL) {
+  document.addEventListener("DOMContentLoaded", () => {
+    document.body.innerHTML = `<div style="font-family:sans-serif;padding:40px;color:#c0392b">
+      <strong>Konfigurasjonsfeil:</strong> config.js mangler eller er ikke konfigurert.<br>
+      Kopier <code>config.example.js</code> til <code>config.js</code> og fyll inn FLOW_URL.
+    </div>`;
+  });
+}
 
-const statusEl   = document.getElementById("status");
-const listEl     = document.getElementById("list-container");
-const detailEl   = document.getElementById("detail");
-// const searchEl = document.getElementById("search-input"); // Last inn alle — deaktivert
-// const btnLoad  = document.getElementById("btn-load");     // Last inn alle — deaktivert
-const nrInput    = document.getElementById("nr-input");
-const btnLookup  = document.getElementById("btn-lookup");
+const statusEl  = document.getElementById("status");
+const listEl    = document.getElementById("list-container");
+const detailEl  = document.getElementById("detail");
+const nrInput   = document.getElementById("nr-input");
+const btnLookup = document.getElementById("btn-lookup");
+const navnInput = document.getElementById("navn-input");
+const btnLoad   = document.getElementById("btn-load");
+const tabNr     = document.getElementById("tab-nr");
+const tabNavn   = document.getElementById("tab-navn");
+
+tabNr.addEventListener("click", () => {
+  tabNr.classList.add("active");   tabNavn.classList.remove("active");
+  document.getElementById("search-nr").style.display   = "flex";
+  document.getElementById("search-navn").style.display = "none";
+  detailEl.innerHTML = ""; listEl.innerHTML = ""; setStatus("", "");
+});
+tabNavn.addEventListener("click", () => {
+  tabNavn.classList.add("active"); tabNr.classList.remove("active");
+  document.getElementById("search-navn").style.display = "block";
+  document.getElementById("search-nr").style.display   = "none";
+  detailEl.innerHTML = ""; listEl.innerHTML = ""; setStatus("", "");
+});
 
 let allStudents = [];
 let selectedNr  = null;
@@ -36,14 +59,14 @@ function getStudieinfo(nr, fodselsdato) {
   return { kull, program, klasse };
 }
 
-// ── GraphQL-spørringer ────────────────────────────────────────────────────
+// ── GraphQL-spørringer ─────────────────────────────────────────────────────
 
 // Listespørring: henter kun felt nødvendige for oversiktsvisning (dataminimering).
 // privatEpost og fodselsdato hentes IKKE her — kun ved direkte oppslag på én student.
 function listQuery(cursor) {
   const after = cursor ? `, after: "${cursor}"` : "";
   return `{
-  studenter(filter: {eierOrganisasjonskode: "215"}, first: 50${after}) {
+  studenter(filter: {eierOrganisasjonskode: "215"}, first: 5${after}) {
     edges {
       node {
         studentnummer
@@ -51,9 +74,6 @@ function listQuery(cursor) {
           navn { fornavn etternavn }
           institusjonsEpost
           feideBruker
-        }
-        semesterregistreringer {
-          edges { node { id } }
         }
       }
     }
@@ -141,7 +161,13 @@ btnLookup.addEventListener("click", async () => {
   const isFeide = raw.includes("@");
   const nr = raw.toLowerCase().startsWith("s") ? raw.slice(1) : raw;
 
-  if (!isFeide && !/^\d+$/.test(nr)) {
+  if (isFeide) {
+    // Streng validering av feide — forhindrer GraphQL-injeksjon
+    if (!/^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/.test(raw)) {
+      setStatus("Ugyldig feide-adresse.", "error");
+      return;
+    }
+  } else if (!/^\d+$/.test(nr)) {
     setStatus("Ugyldig format. Skriv studentnummer (f.eks. 867184) eller feide-adresse.", "error");
     return;
   }
@@ -179,6 +205,106 @@ nrInput.addEventListener("keydown", e => {
   if (e.key === "Enter") btnLookup.click();
 });
 
+
+// ── Last inn alle studenter (for navnesøk) ────────────────────────────────
+
+btnLoad.addEventListener("click", async () => {
+  btnLoad.disabled = true;
+  allStudents = [];
+  detailEl.innerHTML = "";
+  listEl.innerHTML = "";
+  setStatus("Laster inn studenter…", "loading");
+
+  try {
+    let cursor = null;
+    do {
+      const data   = await callFlow(listQuery(cursor));
+      const result = data?.data?.studenter;
+      allStudents.push(...(result?.edges ?? []).map(e => e.node));
+      const rawCursor = result?.pageInfo?.endCursor ?? "";
+      // Valider cursor (base64) før bruk i neste spørring
+      cursor = result?.pageInfo?.hasNextPage && /^[A-Za-z0-9+/=]+$/.test(rawCursor)
+        ? rawCursor : null;
+      setStatus(`Laster… ${allStudents.length} studenter hentet`, "loading");
+    } while (cursor);
+
+    setStatus(`${allStudents.length} studenter lastet — søk på navn nedenfor.`, "ok");
+    document.getElementById("load-section").style.display    = "none";
+    document.getElementById("navn-filter-row").style.display = "flex";
+    navnInput.focus();
+  } catch (err) {
+    setStatus("Feil: " + err.message, "error");
+    btnLoad.disabled = false;
+  }
+});
+
+navnInput.addEventListener("input", () => {
+  const q = navnInput.value.trim().toLowerCase();
+  detailEl.innerHTML = "";
+  if (!q) { listEl.innerHTML = ""; setStatus(`${allStudents.length} studenter lastet — søk på navn nedenfor.`, "ok"); return; }
+
+  const results = allStudents.filter(s => {
+    const fornavn   = s.personProfil?.navn?.fornavn?.toLowerCase() ?? "";
+    const etternavn = s.personProfil?.navn?.etternavn?.toLowerCase() ?? "";
+    return `${fornavn} ${etternavn}`.includes(q) || fornavn.startsWith(q) || etternavn.startsWith(q);
+  });
+
+  if (!results.length) {
+    listEl.innerHTML = "";
+    setStatus("Ingen treff.", "error");
+  } else {
+    setStatus(`${results.length} treff`, "ok");
+    listEl.innerHTML = renderNameResults(results.slice(0, 50));
+  }
+});
+
+function renderNameResults(results) {
+  const rows = results.map(s => {
+    const navn  = s.personProfil?.navn;
+    const fullt = [navn?.fornavn, navn?.etternavn].filter(Boolean).map(esc).join(" ") || "—";
+    const nr    = esc(s.studentnummer);
+    const epost = esc(s.personProfil?.institusjonsEpost);
+    // data-nr brukes istedenfor inline onclick for å unngå JS-injeksjon
+    return `<div class="list-row" data-nr="${nr}">
+      <span class="nr">${nr}</span>
+      <span>${fullt}</span>
+      <span class="muted">${epost}</span>
+    </div>`;
+  }).join("");
+
+  const html = `<div class="student-list">
+    <div class="list-header"><span>Studentnr</span><span>Navn</span><span>E-post</span></div>
+    ${rows}
+  </div>`;
+
+  // Bruk event delegation — ingen inline JS med API-data
+  setTimeout(() => {
+    listEl.querySelectorAll(".list-row[data-nr]").forEach(el => {
+      el.addEventListener("click", () => {
+        const nr = el.dataset.nr;
+        if (/^\d+$/.test(nr)) loadByNr(nr);
+      });
+    });
+  }, 0);
+
+  return html;
+}
+
+async function loadByNr(nr) {
+  listEl.innerHTML = "";
+  setStatus("Henter student…", "loading");
+  try {
+    const data    = await callFlow(detailQueryByNr(nr));
+    const student = data?.data?.studenterGittStudentnumre?.[0] ?? null;
+    if (!student) { setStatus("Ingen student funnet.", "error"); return; }
+    setStatus("", "");
+    detailEl.innerHTML = renderCard(student);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  } catch (err) {
+    setStatus("Feil: " + err.message, "error");
+  }
+}
+
 // ── Hent og vis detaljkort ────────────────────────────────────────────────
 
 async function showDetail(feide, nr) {
@@ -207,21 +333,22 @@ function renderDetailFromList(s) {
 
 function renderCard(s) {
   const navn    = s.personProfil?.navn;
-  const fullt   = [navn?.fornavn, navn?.etternavn].filter(Boolean).join(" ") || "—";
-  const iepost  = s.personProfil?.institusjonsEpost ?? "—";
-  const pepost  = s.personProfil?.privatEpost ?? "—";
-  const feide   = s.personProfil?.feideBruker ?? "—";
-  const fødsel  = s.personProfil?.fodselsdato ?? "—";
-  const nSem    = s.semesterregistreringer?.edges?.length ?? "—";
+  const fullt   = [navn?.fornavn, navn?.etternavn].filter(Boolean).map(esc).join(" ") || "—";
+  const iepost  = esc(s.personProfil?.institusjonsEpost);
+  const pepost  = esc(s.personProfil?.privatEpost);
+  const feide   = esc(s.personProfil?.feideBruker);
+  const fødsel  = esc(s.personProfil?.fodselsdato);
+  const nSem    = esc(s.semesterregistreringer?.edges?.length);
+  const snr     = esc(s.studentnummer);
 
   const info = getStudieinfo(s.studentnummer, s.personProfil?.fodselsdato);
   const studieHTML = (info.kull || info.program || info.klasse) ? `
       <div class="section">
         <p class="section-title">Studieinformasjon</p>
         <div class="field-grid">
-          ${info.kull    ? row("Kull",    info.kull)    : ""}
-          ${info.program ? row("Program", info.program) : ""}
-          ${info.klasse  ? row("Klasse",  info.klasse)  : ""}
+          ${info.kull    ? row("Kull",    esc(info.kull))    : ""}
+          ${info.program ? row("Program", esc(info.program)) : ""}
+          ${info.klasse  ? row("Klasse",  esc(info.klasse))  : ""}
         </div>
       </div>` : "";
 
@@ -229,18 +356,18 @@ function renderCard(s) {
     <div class="profile-card">
       <div class="profile-header">
         <p class="name">${fullt}</p>
-        <p class="meta">Studentnummer: ${s.studentnummer ?? "—"} &nbsp;·&nbsp; ${iepost}</p>
+        <p class="meta">Studentnummer: ${snr} &nbsp;·&nbsp; ${iepost}</p>
         <button class="close-btn" onclick="document.getElementById('detail').innerHTML=''" title="Lukk">&times;</button>
       </div>
       <div class="section">
         <p class="section-title">Personinfo</p>
         <div class="field-grid">
-          ${row("Fornavn", navn?.fornavn)}
-          ${row("Etternavn", navn?.etternavn)}
-          ${row("Institusjonsepost", iepost)}
-          ${row("Privat e-post", pepost)}
-          ${row("Feide-bruker", feide)}
-          ${row("Fødselsdato", fødsel)}
+          ${row("Fornavn",               esc(navn?.fornavn))}
+          ${row("Etternavn",             esc(navn?.etternavn))}
+          ${row("Institusjonsepost",     iepost)}
+          ${row("Privat e-post",         pepost)}
+          ${row("Feide-bruker",          feide)}
+          ${row("Fødselsdato",           fødsel)}
           ${row("Semesterregistreringer", nSem)}
         </div>
       </div>
@@ -257,4 +384,15 @@ function row(label, value) {
 function setStatus(msg, cls) {
   statusEl.textContent = msg;
   statusEl.className   = cls;
+}
+
+// Forhindrer XSS ved å escape HTML-spesialtegn i all API-data
+function esc(str) {
+  if (str == null) return "—";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;");
 }
