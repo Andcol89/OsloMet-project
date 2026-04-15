@@ -15,26 +15,7 @@ const listEl    = document.getElementById("list-container");
 const detailEl  = document.getElementById("detail");
 const nrInput   = document.getElementById("nr-input");
 const btnLookup = document.getElementById("btn-lookup");
-const navnInput = document.getElementById("navn-input");
-const btnLoad   = document.getElementById("btn-load");
-const tabNr     = document.getElementById("tab-nr");
-const tabNavn   = document.getElementById("tab-navn");
 
-tabNr.addEventListener("click", () => {
-  tabNr.classList.add("active");   tabNavn.classList.remove("active");
-  document.getElementById("search-nr").style.display   = "flex";
-  document.getElementById("search-navn").style.display = "none";
-  detailEl.innerHTML = ""; listEl.innerHTML = ""; setStatus("", "");
-});
-tabNavn.addEventListener("click", () => {
-  tabNavn.classList.add("active"); tabNr.classList.remove("active");
-  document.getElementById("search-navn").style.display = "block";
-  document.getElementById("search-nr").style.display   = "none";
-  detailEl.innerHTML = ""; listEl.innerHTML = ""; setStatus("", "");
-});
-
-let allStudents = [];
-let selectedNr  = null;
 
 const SI_PROGRAM = ["ANVDATA", "ACIT", "INFORMATIK", "PDB", "MAMECH", "HINGELEKTR"];
 const SI_KLASSE  = ["A", "B", "C"];
@@ -60,27 +41,6 @@ function getStudieinfo(nr, fodselsdato) {
 }
 
 // ── GraphQL-spørringer ─────────────────────────────────────────────────────
-
-// Listespørring: henter kun felt nødvendige for oversiktsvisning (dataminimering).
-// privatEpost og fodselsdato hentes IKKE her — kun ved direkte oppslag på én student.
-function listQuery(cursor) {
-  const after = cursor ? `, after: "${cursor}"` : "";
-  return `{
-  studenter(filter: {eierOrganisasjonskode: "215"}, first: 5${after}) {
-    edges {
-      node {
-        studentnummer
-        personProfil {
-          navn { fornavn etternavn }
-          institusjonsEpost
-          feideBruker
-        }
-      }
-    }
-    pageInfo { hasNextPage endCursor }
-  }
-}`;
-}
 
 // Detaljspørring: henter fullstendig datasett inkl. privatEpost og fødselsdato.
 // Brukes kun ved oppslag på én konkret student — begrunnet av behov i saksbehandling.
@@ -122,17 +82,6 @@ function detailQueryByNr(nr) {
     semesterregistreringer { edges { node { id } } }
   }
 }`;
-}
-
-// ── Normalisering av studentnummer → feide-bruker ─────────────────────────
-// Feide-format: s{studentnummer}@oslomet.no
-// Aksepterer: "s300055", "300055", "s300055@oslomet.no"
-function toFeide(input) {
-  const trimmed = input.trim().toLowerCase();
-  if (trimmed.includes("@")) return trimmed;
-  const nr = trimmed.startsWith("s") ? trimmed.slice(1) : trimmed;
-  if (!nr || !/^\d+$/.test(nr)) return null;
-  return `s${nr}@oslomet.no`;
 }
 
 // ── API-kall ──────────────────────────────────────────────────────────────
@@ -205,129 +154,6 @@ nrInput.addEventListener("keydown", e => {
   if (e.key === "Enter") btnLookup.click();
 });
 
-
-// ── Last inn alle studenter (for navnesøk) ────────────────────────────────
-
-btnLoad.addEventListener("click", async () => {
-  btnLoad.disabled = true;
-  allStudents = [];
-  detailEl.innerHTML = "";
-  listEl.innerHTML = "";
-  setStatus("Laster inn studenter…", "loading");
-
-  try {
-    let cursor = null;
-    do {
-      const data   = await callFlow(listQuery(cursor));
-      const result = data?.data?.studenter;
-      allStudents.push(...(result?.edges ?? []).map(e => e.node));
-      const rawCursor = result?.pageInfo?.endCursor ?? "";
-      // Valider cursor (base64) før bruk i neste spørring
-      cursor = result?.pageInfo?.hasNextPage && /^[A-Za-z0-9+/=]+$/.test(rawCursor)
-        ? rawCursor : null;
-      setStatus(`Laster… ${allStudents.length} studenter hentet`, "loading");
-    } while (cursor);
-
-    setStatus(`${allStudents.length} studenter lastet — søk på navn nedenfor.`, "ok");
-    document.getElementById("load-section").style.display    = "none";
-    document.getElementById("navn-filter-row").style.display = "flex";
-    navnInput.focus();
-  } catch (err) {
-    setStatus("Feil: " + err.message, "error");
-    btnLoad.disabled = false;
-  }
-});
-
-navnInput.addEventListener("input", () => {
-  const q = navnInput.value.trim().toLowerCase();
-  detailEl.innerHTML = "";
-  if (!q) { listEl.innerHTML = ""; setStatus(`${allStudents.length} studenter lastet — søk på navn nedenfor.`, "ok"); return; }
-
-  const results = allStudents.filter(s => {
-    const fornavn   = s.personProfil?.navn?.fornavn?.toLowerCase() ?? "";
-    const etternavn = s.personProfil?.navn?.etternavn?.toLowerCase() ?? "";
-    return `${fornavn} ${etternavn}`.includes(q) || fornavn.startsWith(q) || etternavn.startsWith(q);
-  });
-
-  if (!results.length) {
-    listEl.innerHTML = "";
-    setStatus("Ingen treff.", "error");
-  } else {
-    setStatus(`${results.length} treff`, "ok");
-    listEl.innerHTML = renderNameResults(results.slice(0, 50));
-  }
-});
-
-function renderNameResults(results) {
-  const rows = results.map(s => {
-    const navn  = s.personProfil?.navn;
-    const fullt = [navn?.fornavn, navn?.etternavn].filter(Boolean).map(esc).join(" ") || "—";
-    const nr    = esc(s.studentnummer);
-    const epost = esc(s.personProfil?.institusjonsEpost);
-    // data-nr brukes istedenfor inline onclick for å unngå JS-injeksjon
-    return `<div class="list-row" data-nr="${nr}">
-      <span class="nr">${nr}</span>
-      <span>${fullt}</span>
-      <span class="muted">${epost}</span>
-    </div>`;
-  }).join("");
-
-  const html = `<div class="student-list">
-    <div class="list-header"><span>Studentnr</span><span>Navn</span><span>E-post</span></div>
-    ${rows}
-  </div>`;
-
-  // Bruk event delegation — ingen inline JS med API-data
-  setTimeout(() => {
-    listEl.querySelectorAll(".list-row[data-nr]").forEach(el => {
-      el.addEventListener("click", () => {
-        const nr = el.dataset.nr;
-        if (/^\d+$/.test(nr)) loadByNr(nr);
-      });
-    });
-  }, 0);
-
-  return html;
-}
-
-async function loadByNr(nr) {
-  listEl.innerHTML = "";
-  setStatus("Henter student…", "loading");
-  try {
-    const data    = await callFlow(detailQueryByNr(nr));
-    const student = data?.data?.studenterGittStudentnumre?.[0] ?? null;
-    if (!student) { setStatus("Ingen student funnet.", "error"); return; }
-    setStatus("", "");
-    detailEl.innerHTML = renderCard(student);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  } catch (err) {
-    setStatus("Feil: " + err.message, "error");
-  }
-}
-
-// ── Hent og vis detaljkort ────────────────────────────────────────────────
-
-async function showDetail(feide, nr) {
-  detailEl.innerHTML = "";
-  setStatus("Henter detaljer…", "loading");
-  try {
-    const data = await callFlow(detailQuery(feide));
-    const studenter = data?.data?.studenterGittFeideBrukere ?? [];
-    if (!studenter.length || !studenter[0]) {
-      renderDetailFromList(allStudents.find(s => s.studentnummer === nr));
-      return;
-    }
-    setStatus("", "");
-    detailEl.innerHTML = renderCard(studenter[0]);
-  } catch (err) {
-    setStatus("Feil ved henting av detaljer: " + err.message, "error");
-  }
-}
-
-function renderDetailFromList(s) {
-  setStatus("", "");
-  detailEl.innerHTML = renderCard(s);
-}
 
 // ── Profilkort ────────────────────────────────────────────────────────────
 
