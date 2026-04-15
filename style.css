@@ -1,0 +1,185 @@
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  background: #f0f2f5;
+  color: #1a1a1a;
+  margin: 0;
+  padding: 0;
+}
+
+/* Navbar */
+.navbar {
+  background: #F5C800;
+  padding: 0 32px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+}
+.navbar img {
+  height: 60px;
+  display: block;
+}
+
+.layout { max-width: 680px; margin: 0 auto; padding: 32px 16px; }
+.page { width: 100%; }
+
+h1 { font-size: 22px; font-weight: 700; margin: 0 0 4px; }
+.subtitle { font-size: 14px; color: #666; margin: 0 0 24px; }
+
+/* Søkerad */
+.search-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.search-row input {
+  flex: 1;
+  font-size: 15px;
+  padding: 10px 14px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  outline: none;
+}
+.search-row input:focus { border-color: #F5C800; }
+
+button {
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn-primary { background: #F5C800; color: #1a1a1a; }
+.btn-primary:hover:not(:disabled) { background: #ddb400; }
+.btn-primary:disabled { background: #f5e080; cursor: not-allowed; }
+
+/* Status */
+#status { font-size: 14px; min-height: 20px; margin-bottom: 16px; }
+#status.error   { color: #c0392b; font-weight: 600; }
+#status.loading { color: #555; }
+#status.ok      { color: #1a7a3e; font-weight: 600; }
+
+/* Studentliste */
+.student-list {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.1);
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.list-header {
+  padding: 12px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: #888;
+  border-bottom: 1px solid #eee;
+  display: grid;
+  grid-template-columns: 110px 1fr 1fr;
+  gap: 12px;
+}
+
+.list-row {
+  display: grid;
+  grid-template-columns: 110px 1fr 1fr;
+  gap: 12px;
+  padding: 11px 16px;
+  border-bottom: 1px solid #f3f3f3;
+  cursor: pointer;
+  transition: background .1s;
+  align-items: center;
+  font-size: 14px;
+}
+.list-row:last-child { border-bottom: none; }
+.list-row:hover { background: #fffbea; }
+.list-row.selected { background: #fff8cc; }
+.list-row .nr { font-weight: 600; color: #b38f00; }
+.list-row .muted { color: #888; font-size: 13px; }
+
+/* Profilkort */
+.profile-card {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.1);
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+
+.profile-header {
+  background: #F5C800;
+  color: #1a1a1a;
+  padding: 18px 20px;
+  position: relative;
+}
+.profile-header .name { font-size: 20px; font-weight: 700; margin: 0 0 3px; }
+.profile-header .meta { font-size: 13px; opacity: .7; margin: 0; }
+
+.close-btn {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(0,0,0,.15);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 300;
+  color: #1a1a1a;
+  line-height: 1;
+  transition: background .15s;
+}
+.close-btn:hover { background: rgba(0,0,0,.28); }
+
+.section { padding: 14px 20px; border-top: 1px solid #eee; }
+.section-title {
+  font-size: 11px; font-weight: 700;
+  letter-spacing: .08em; text-transform: uppercase;
+  color: #888; margin: 0 0 10px;
+}
+.field-grid {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  row-gap: 8px;
+  column-gap: 12px;
+}
+.field-label { font-size: 13px; color: #666; }
+.field-value { font-size: 13px; font-weight: 500; color: #111; word-break: break-word; }
+
+/* Felles studieinformasjon-bar */
+.studieinfo-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.studieinfo-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: #888;
+  white-space: nowrap;
+  margin-right: 4px;
+}
+.studieinfo-bar input {
+  font-size: 13px;
+  padding: 6px 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  outline: none;
+  flex: 1;
+  min-width: 120px;
+}
+.studieinfo-bar input:focus { border-color: #F5C800; }

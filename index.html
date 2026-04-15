@@ -4,433 +4,46 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Studentoppslag – OsloMet</title>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; }
-
-    body {
-      font-family: system-ui, -apple-system, sans-serif;
-      background: #f0f2f5;
-      color: #1a1a1a;
-      margin: 0;
-      padding: 0;
-    }
-
-    .topbar {
-      background: #F5C800;
-      display: flex;
-      align-items: center;
-      padding: 0 24px;
-      height: 48px;
-      gap: 16px;
-    }
-    .topbar img {
-      height: 32px;
-    }
-    .topbar-title {
-      font-size: 16px;
-      font-weight: 600;
-      color: #1a1a1a;
-    }
-
-    .page { max-width: 680px; margin: 0 auto; padding: 32px 16px; }
-
-    h1 { font-size: 22px; font-weight: 700; margin: 0 0 4px; }
-    .subtitle { font-size: 14px; color: #666; margin: 0 0 24px; }
-
-    /* Søkerad */
-    .search-row { display: flex; gap: 8px; margin-bottom: 8px; }
-    .search-row input {
-      flex: 1;
-      font-size: 15px;
-      padding: 10px 14px;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      outline: none;
-    }
-    .search-row input:focus { border-color: #F5C800; }
-
-    button {
-      font-size: 14px;
-      font-weight: 600;
-      padding: 10px 18px;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      white-space: nowrap;
-    }
-    .btn-primary { background: #F5C800; color: #1a1a1a; }
-    .btn-primary:hover:not(:disabled) { background: #ddb400; }
-    .btn-primary:disabled { background: #f5e080; cursor: not-allowed; }
-
-    /* Status */
-    #status { font-size: 14px; min-height: 20px; margin-bottom: 16px; }
-    #status.error   { color: #c0392b; font-weight: 600; }
-    #status.loading { color: #555; }
-    #status.ok      { color: #1a7a3e; font-weight: 600; }
-
-    /* Studentliste */
-    .student-list {
-      background: #fff;
-      border-radius: 10px;
-      box-shadow: 0 1px 4px rgba(0,0,0,.1);
-      overflow: hidden;
-      margin-bottom: 20px;
-    }
-
-    .list-header {
-      padding: 12px 16px;
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: .06em;
-      text-transform: uppercase;
-      color: #888;
-      border-bottom: 1px solid #eee;
-      display: grid;
-      grid-template-columns: 110px 1fr 1fr;
-      gap: 12px;
-    }
-
-    .list-row {
-      display: grid;
-      grid-template-columns: 110px 1fr 1fr;
-      gap: 12px;
-      padding: 11px 16px;
-      border-bottom: 1px solid #f3f3f3;
-      cursor: pointer;
-      transition: background .1s;
-      align-items: center;
-      font-size: 14px;
-    }
-    .list-row:last-child { border-bottom: none; }
-    .list-row:hover { background: #fffbea; }
-    .list-row.selected { background: #fff8cc; }
-    .list-row .nr { font-weight: 600; color: #b38f00; }
-    .list-row .muted { color: #888; font-size: 13px; }
-
-    /* Profilkort */
-    .profile-card {
-      background: #fff;
-      border-radius: 10px;
-      box-shadow: 0 1px 4px rgba(0,0,0,.1);
-      overflow: hidden;
-      margin-bottom: 24px;
-    }
-
-    .profile-header {
-      background: #F5C800;
-      color: #1a1a1a;
-      padding: 18px 20px;
-      position: relative;
-    }
-    .profile-header .name { font-size: 20px; font-weight: 700; margin: 0 0 3px; }
-    .profile-header .meta { font-size: 13px; opacity: .7; margin: 0; }
-
-    .close-btn {
-      position: absolute;
-      right: 14px;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      background: rgba(0,0,0,.15);
-      border: none;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-      font-weight: 300;
-      color: #1a1a1a;
-      line-height: 1;
-      transition: background .15s;
-    }
-    .close-btn:hover { background: rgba(0,0,0,.28); }
-
-    .section { padding: 14px 20px; border-top: 1px solid #eee; }
-    .section-title {
-      font-size: 11px; font-weight: 700;
-      letter-spacing: .08em; text-transform: uppercase;
-      color: #888; margin: 0 0 10px;
-    }
-    .field-grid {
-      display: grid;
-      grid-template-columns: 160px 1fr;
-      row-gap: 8px;
-      column-gap: 12px;
-    }
-    .field-label { font-size: 13px; color: #666; }
-    .field-value { font-size: 13px; font-weight: 500; color: #111; word-break: break-word; }
-  </style>
+  <link rel="icon" type="image/png" href="oslomet-logo.png" />
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-<div class="topbar">
+<nav class="navbar">
   <img src="oslomet-logo.png" alt="OsloMet" />
-  <span class="topbar-title">Student Oppslag</span>
-</div>
-<div class="page">
-  <h1>Studentoppslag</h1>
-  <p class="subtitle">Last inn studentlisten og søk på navn eller studentnummer.</p>
+</nav>
+<div class="layout">
 
-  <div class="search-row">
-    <input id="search-input" placeholder="Søk på navn eller studentnummer…" disabled />
-    <button id="btn-load" class="btn-primary">Last inn studenter</button>
+  <div class="page">
+    <h1>Studentoppslag</h1>
+    <p class="subtitle">Søk direkte på studentnummer.</p>
+
+    <!-- Direkte oppslag -->
+    <div class="search-row">
+      <input id="nr-input" placeholder="Studentnummer (f.eks. 867184)" />
+      <button id="btn-lookup" class="btn-primary">Søk</button>
+    </div>
+
+    <!-- Skillelinje (deaktivert)
+    <div style="display:flex;align-items:center;gap:12px;margin:16px 0 12px">
+      <hr style="flex:1;border:none;border-top:1px solid #ddd" />
+      <span style="font-size:12px;color:#999">eller</span>
+      <hr style="flex:1;border:none;border-top:1px solid #ddd" />
+    </div>
+    -->
+
+    <!-- Last inn alle (deaktivert — kan aktiveres senere)
+    <div class="search-row">
+      <input id="search-input" placeholder="Søk i lastet liste (navn eller nr)…" disabled />
+      <button id="btn-load" class="btn-primary">Last inn alle studenter</button>
+    </div>
+    -->
+
+    <p id="status"></p>
+    <div id="detail"></div>
+    <div id="list-container"></div>
   </div>
 
-  <p id="status"></p>
-  <div id="detail"></div>
-  <div id="list-container"></div>
 </div>
-
-<script>
-  const FLOW_URL = "https://defaultfec81f12628645508911f446fcdafa.1f.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/458dbe403099446fb09394403a3ae1af/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=REDACTED";
-
-  const statusEl   = document.getElementById("status");
-  const listEl     = document.getElementById("list-container");
-  const detailEl   = document.getElementById("detail");
-  const searchEl   = document.getElementById("search-input");
-  const btnLoad    = document.getElementById("btn-load");
-
-  let allStudents = [];
-  let selectedNr  = null;
-
-  // ── GraphQL-spørringer ────────────────────────────────────────────────────
-
-  function listQuery(cursor) {
-    const after = cursor ? `, after: "${cursor}"` : "";
-    return `{
-  studenter(filter: {eierOrganisasjonskode: "215"}, first: 50${after}) {
-    edges {
-      node {
-        studentnummer
-        personProfil {
-          navn { fornavn etternavn }
-          institusjonsEpost
-          privatEpost
-          feideBruker
-          fodselsdato
-        }
-        semesterregistreringer {
-          edges { node { id } }
-        }
-      }
-    }
-    pageInfo { hasNextPage endCursor }
-  }
-}`;
-  }
-
-  function detailQuery(feide) {
-    return `{
-  studenterGittFeideBrukere(
-    eierOrganisasjonskode: "215"
-    feideBrukere: "${feide}"
-  ) {
-    studentnummer
-    personProfil {
-      navn { fornavn etternavn }
-      institusjonsEpost
-      privatEpost
-      feideBruker
-      fodselsdato
-    }
-    semesterregistreringer {
-      edges { node { id } }
-    }
-  }
-}`;
-  }
-
-  // ── API-kall ──────────────────────────────────────────────────────────────
-
-  async function callFlow(query) {
-    const res = await fetch(FLOW_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query })
-    });
-    const text = await res.text();
-    let data;
-    try { data = JSON.parse(text); } catch { data = { raw: text }; }
-    if (!res.ok) throw new Error(data?.error?.message ?? `HTTP ${res.status}`);
-    if (data.errors?.length) throw new Error(data.errors[0].message);
-    return data;
-  }
-
-  // ── Last inn studentliste ─────────────────────────────────────────────────
-
-  btnLoad.addEventListener("click", async () => {
-    btnLoad.disabled = true;
-    searchEl.disabled = true;
-    allStudents = [];
-    listEl.innerHTML = "";
-    detailEl.innerHTML = "";
-    setStatus("Henter studenter…", "loading");
-
-    try {
-      let cursor = null;
-      let total  = 0;
-
-      // Hent inntil 300 studenter (3 sider)
-      for (let page = 0; page < 1; page++) {
-        const data = await callFlow(listQuery(cursor));
-        const edges    = data?.data?.studenter?.edges ?? [];
-        const pageInfo = data?.data?.studenter?.pageInfo ?? {};
-
-        edges.forEach(({ node }) => {
-          if (node?.studentnummer) allStudents.push(node);
-        });
-
-        total = allStudents.length;
-        setStatus(`Lastet ${total} studenter…`, "loading");
-
-        if (!pageInfo.hasNextPage) break;
-        cursor = pageInfo.endCursor;
-      }
-
-      if (!allStudents.length) {
-        setStatus("Ingen studenter funnet.", "error");
-        return;
-      }
-
-      setStatus(`${allStudents.length} studenter lastet — søk i listen.`, "ok");
-      searchEl.disabled = false;
-      searchEl.focus();
-      renderList(allStudents);
-
-    } catch (err) {
-      setStatus("Feil: " + err.message, "error");
-      btnLoad.disabled = false;
-    }
-  });
-
-  // ── Søkefilter ────────────────────────────────────────────────────────────
-
-  searchEl.addEventListener("input", () => {
-    const q = searchEl.value.trim().toLowerCase();
-    if (!q) { renderList(allStudents); return; }
-
-    const filtered = allStudents.filter(s => {
-      const navn = s.personProfil?.navn;
-      const fullt = [navn?.fornavn, navn?.etternavn].join(" ").toLowerCase();
-      return s.studentnummer?.includes(q) || fullt.includes(q);
-    });
-    renderList(filtered);
-  });
-
-  // ── Vis liste ─────────────────────────────────────────────────────────────
-
-  function renderList(students) {
-    if (!students.length) {
-      listEl.innerHTML = `<p style="color:#888;font-size:14px">Ingen treff.</p>`;
-      return;
-    }
-
-    const rows = students.map(s => {
-      const navn  = s.personProfil?.navn;
-      const fullt = [navn?.fornavn, navn?.etternavn].filter(Boolean).join(" ") || "—";
-      const epost = s.personProfil?.institusjonsEpost ?? s.personProfil?.feideBruker ?? "—";
-      const sel   = s.studentnummer === selectedNr ? " selected" : "";
-      return `<div class="list-row${sel}" data-nr="${s.studentnummer}" data-feide="${s.personProfil?.feideBruker ?? ""}">
-        <span class="nr">${s.studentnummer}</span>
-        <span>${fullt}</span>
-        <span class="muted">${epost}</span>
-      </div>`;
-    }).join("");
-
-    listEl.innerHTML = `
-      <div class="student-list">
-        <div class="list-header">
-          <span>Studentnr.</span><span>Navn</span><span>E-post</span>
-        </div>
-        ${rows}
-      </div>`;
-
-    listEl.querySelectorAll(".list-row").forEach(row => {
-      row.addEventListener("click", () => {
-        const nr = row.dataset.nr;
-        selectedNr = nr;
-
-        listEl.querySelectorAll(".list-row").forEach(r => r.classList.remove("selected"));
-        row.classList.add("selected");
-
-        // Vis kortet umiddelbart fra lokal data
-        const student = allStudents.find(s => s.studentnummer === nr);
-        renderDetailFromList(student);
-
-        // Scroll til toppen
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      });
-    });
-  }
-
-  // ── Hent og vis detaljkort ────────────────────────────────────────────────
-
-  async function showDetail(feide, nr) {
-    detailEl.innerHTML = "";
-    setStatus("Henter detaljer…", "loading");
-    try {
-      const data = await callFlow(detailQuery(feide));
-      const studenter = data?.data?.studenterGittFeideBrukere ?? [];
-      if (!studenter.length || !studenter[0]) {
-        renderDetailFromList(allStudents.find(s => s.studentnummer === nr));
-        return;
-      }
-      setStatus("", "");
-      detailEl.innerHTML = renderCard(studenter[0]);
-    } catch (err) {
-      setStatus("Feil ved henting av detaljer: " + err.message, "error");
-    }
-  }
-
-  function renderDetailFromList(s) {
-    setStatus("", "");
-    detailEl.innerHTML = renderCard(s);
-  }
-
-  // ── Profilkort ────────────────────────────────────────────────────────────
-
-  function renderCard(s) {
-    const navn    = s.personProfil?.navn;
-    const fullt   = [navn?.fornavn, navn?.etternavn].filter(Boolean).join(" ") || "—";
-    const iepost  = s.personProfil?.institusjonsEpost ?? "—";
-    const pepost  = s.personProfil?.privatEpost ?? "—";
-    const feide   = s.personProfil?.feideBruker ?? "—";
-    const fødsel  = s.personProfil?.fodselsdato ?? "—";
-    const nSem    = s.semesterregistreringer?.edges?.length ?? "—";
-
-    return `
-      <div class="profile-card">
-        <div class="profile-header">
-          <p class="name">${fullt}</p>
-          <p class="meta">Studentnummer: ${s.studentnummer ?? "—"} &nbsp;·&nbsp; ${iepost}</p>
-          <button class="close-btn" onclick="document.getElementById('detail').innerHTML=''" title="Lukk">&times;</button>
-        </div>
-        <div class="section">
-          <p class="section-title">Personinfo</p>
-          <div class="field-grid">
-            ${row("Fornavn", navn?.fornavn)}
-            ${row("Etternavn", navn?.etternavn)}
-            ${row("Institusjonsepost", iepost)}
-            ${row("Privat e-post", pepost)}
-            ${row("Feide-bruker", feide)}
-            ${row("Fødselsdato", fødsel)}
-            ${row("Semesterregistreringer", nSem)}
-          </div>
-        </div>
-      </div>`;
-  }
-
-  function row(label, value) {
-    return `<div class="field-label">${label}</div><div class="field-value">${value ?? "—"}</div>`;
-  }
-
-  // ── Hjelpefunksjoner ──────────────────────────────────────────────────────
-
-  function setStatus(msg, cls) {
-    statusEl.textContent = msg;
-    statusEl.className   = cls;
-  }
-</script>
+<script src="app.js"></script>
 </body>
 </html>
