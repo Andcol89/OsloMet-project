@@ -10,6 +10,21 @@ if (!FLOW_URL) {
   });
 }
 
+(function () {
+  const canvas = document.createElement("canvas");
+  canvas.width = 64; canvas.height = 64;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#FFDC00";
+  ctx.fillRect(0, 0, 64, 64);
+  const img = new Image();
+  img.onload = function () {
+    ctx.drawImage(img, 4, 4, 56, 56);
+    const link = document.querySelector("link[rel='icon']");
+    if (link) link.href = canvas.toDataURL("image/png");
+  };
+  img.src = "oslomet-logo.png";
+})();
+
 const statusEl  = document.getElementById("status");
 const listEl    = document.getElementById("list-container");
 const detailEl  = document.getElementById("detail");

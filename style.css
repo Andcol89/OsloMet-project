@@ -10,15 +10,17 @@ body {
 
 /* Navbar */
 .navbar {
-  background: #F5C800;
-  padding: 0 32px;
+  background: #FFDC00;
+  padding: 8px 32px 0;
   height: 64px;
   display: flex;
   align-items: center;
+  flex-shrink: 0;
 }
 .navbar img {
-  height: 60px;
+  height: clamp(36px, 6vw, 60px);
   display: block;
+  width: auto;
 }
 
 .layout { max-width: 680px; margin: 0 auto; padding: 32px 16px; }
@@ -37,7 +39,7 @@ h1 { font-size: 22px; font-weight: 700; margin: 0 0 4px; }
   border-radius: 8px;
   outline: none;
 }
-.search-row input:focus { border-color: #F5C800; }
+.search-row input:focus { border-color: #FFDC00; }
 
 button {
   font-size: 14px;
@@ -48,9 +50,9 @@ button {
   cursor: pointer;
   white-space: nowrap;
 }
-.btn-primary { background: #F5C800; color: #1a1a1a; }
-.btn-primary:hover:not(:disabled) { background: #ddb400; }
-.btn-primary:disabled { background: #f5e080; cursor: not-allowed; }
+.btn-primary { background: #FFDC00; color: #1a1a1a; }
+.btn-primary:hover:not(:disabled) { background: #e6c600; }
+.btn-primary:disabled { background: #ffee80; cursor: not-allowed; }
 
 /* Status */
 #status { font-size: 14px; min-height: 20px; margin-bottom: 16px; }
@@ -92,9 +94,9 @@ button {
   font-size: 14px;
 }
 .list-row:last-child { border-bottom: none; }
-.list-row:hover { background: #fffbea; }
-.list-row.selected { background: #fff8cc; }
-.list-row .nr { font-weight: 600; color: #b38f00; }
+.list-row:hover { background: #fffde8; }
+.list-row.selected { background: #fffbe0; }
+.list-row .nr { font-weight: 600; color: #c9a800; }
 .list-row .muted { color: #888; font-size: 13px; }
 
 /* Profilkort */
@@ -107,7 +109,7 @@ button {
 }
 
 .profile-header {
-  background: #F5C800;
+  background: #FFDC00;
   color: #1a1a1a;
   padding: 18px 20px;
   position: relative;
@@ -182,4 +184,19 @@ button {
   flex: 1;
   min-width: 120px;
 }
-.studieinfo-bar input:focus { border-color: #F5C800; }
+.studieinfo-bar input:focus { border-color: #FFDC00; }
+
+/* Responsivt design */
+@media (max-width: 600px) {
+  .navbar {
+    padding: 6px 16px 0;
+    height: 52px;
+  }
+  .layout { padding: 20px 12px; }
+  h1 { font-size: 18px; }
+  .search-row input { font-size: 14px; }
+  .field-grid { grid-template-columns: 1fr; row-gap: 2px; }
+  .field-label { font-size: 12px; color: #888; }
+  .field-value { font-size: 13px; margin-bottom: 8px; }
+  .profile-header .name { font-size: 17px; }
+}
